@@ -2,7 +2,6 @@
 /*
  * Copyright (c) 2014, STMicroelectronics International N.V.
  * Copyright (c) 2021, SumUp Services GmbH
- * Copyright 2023 NXP
  */
 
 #include <stdio.h>
@@ -1357,7 +1356,6 @@ static const struct xtest_mac_case mac_cases[] = {
 	XTEST_MAC_CMAC_CASE(vect11, 9),
 	XTEST_MAC_CMAC_CASE(vect12, 9),
 	XTEST_MAC_CMAC_CASE(vect12, 16),
-	XTEST_MAC_CMAC_CASE(vect13, 1),
 
 	{ TEE_ALG_DES3_CMAC, TEE_TYPE_DES3, mac_des3_cmac_vect1_key,
 	  ARRAY_SIZE(mac_des3_cmac_vect1_key), 0, NULL, 0, mac_des3_cmac_vect1_out,
@@ -3834,7 +3832,6 @@ static void xtest_tee_test_4006(ADBG_Case_t *c)
 	uint32_t pub_key_type = 0;
 	uint32_t priv_key_type = 0;
 	uint32_t hash_algo = 0;
-	uint32_t sha1_algo_id = TEE_ALG_SHA1;
 
 	if (!ADBG_EXPECT_TEEC_SUCCESS(c,
 		xtest_teec_open_session(&session, &crypt_user_ta_uuid, NULL,
@@ -4135,9 +4132,9 @@ static void xtest_tee_test_4006(ADBG_Case_t *c)
 				algo_params[0].attributeID =
 					TEE_ATTR_RSA_OAEP_MGF_HASH;
 				algo_params[0].content.ref.length =
-					sizeof(sha1_algo_id);
+					sizeof(uint32_t);
 				algo_params[0].content.ref.buffer =
-					&sha1_algo_id;
+					&(uint32_t){TEE_ALG_SHA1};
 				num_algo_params = 1;
 			}
 

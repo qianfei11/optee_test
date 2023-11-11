@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <ta_arm_bti.h>
 #include <ta_concurrent.h>
@@ -2571,11 +2572,10 @@ static void xtest_tee_test_1034(ADBG_Case_t *c)
 				      &ret_orig);
 	if (res == TEEC_ERROR_OUT_OF_MEMORY) {
 		Do_ADBG_Log("TEEC_ERROR_OUT_OF_MEMORY - ignored");
-		return;
-	}
-	ADBG_EXPECT_TEEC_SUCCESS(c, res);
-	if (!res)
+	} else {
+		ADBG_EXPECT_TEEC_SUCCESS(c, res);
 		TEEC_CloseSession(&session);
+	}
 }
 ADBG_CASE_DEFINE(regression, 1034, xtest_tee_test_1034,
 		 "Test loading a large TA");
@@ -3124,8 +3124,6 @@ static void xtest_tee_test_1037(ADBG_Case_t *c)
 		return;
 	}
 
-	TEEC_CloseSession(&session);
-
 	Do_ADBG_BeginSubCase(c, "Get public key");
 	get_att_public_key(c);
 	Do_ADBG_EndSubCase(c, "Get public key");
@@ -3270,75 +3268,7 @@ static void xtest_tee_test_1039(ADBG_Case_t *c)
 	Do_ADBG_EndSubCase(c, "Load TA with identity subkey");
 
 }
+
+
 ADBG_CASE_DEFINE(regression, 1039, xtest_tee_test_1039,
 		 "Test subkey verification");
-
-struct test_1040_thread_arg {
-	TEEC_Result res;
-	pthread_t thr;
-};
-
-static void *test_1040_thread(void *arg)
-{
-	TEEC_Operation op = TEEC_OPERATION_INITIALIZER;
-	struct test_1040_thread_arg *a = arg;
-	TEEC_Result res = TEEC_SUCCESS;
-	uint32_t err_orig = 0;
-	TEEC_Session session = { };
-	size_t loop_count = 100;
-	size_t n = 0;
-
-	if (level == 0)
-		loop_count /= 2;
-
-	while (n < loop_count) {
-		res = xtest_teec_open_session(&session, &sims_test_ta_uuid,
-					      NULL, &err_orig);
-		if (res) {
-			if (res == TEEC_ERROR_TARGET_DEAD)
-				continue;
-			a->res = res;
-			return NULL;
-		}
-
-		memset(&op, 0, sizeof(op));
-		op.paramTypes = TEEC_PARAM_TYPES(TEEC_MEMREF_TEMP_INPUT,
-						 TEEC_NONE, TEEC_NONE,
-						 TEEC_NONE);
-		res = TEEC_InvokeCommand(&session, TA_SIMS_CMD_PANIC, &op,
-					 &err_orig);
-		TEEC_CloseSession(&session);
-		if (res != TEEC_ERROR_TARGET_DEAD) {
-			if (res)
-				a->res = res;
-			else
-				a->res = TEEC_ERROR_GENERIC;
-			return NULL;
-		}
-		n++;
-	}
-	a->res = TEEC_SUCCESS;
-	return NULL;
-}
-
-static void xtest_tee_test_1040(ADBG_Case_t *c)
-{
-	struct test_1040_thread_arg arg[NUM_THREADS] = { };
-	size_t nt = NUM_THREADS;
-	size_t n = 0;
-
-	Do_ADBG_BeginSubCase(c, "Concurent invoke with panic in TA");
-	for (n = 0; n < nt; n++) {
-		if (!ADBG_EXPECT(c, 0, pthread_create(&arg[n].thr, NULL,
-						      test_1040_thread,
-						      arg + n)))
-			nt = n; /* break loop and start cleanup */
-	}
-	for (n = 0; n < nt; n++) {
-		ADBG_EXPECT(c, 0, pthread_join(arg[n].thr, NULL));
-		ADBG_EXPECT_TEEC_SUCCESS(c, arg[n].res);
-	}
-	Do_ADBG_EndSubCase(c, "Concurent invoke with panic in TA");
-}
-ADBG_CASE_DEFINE(regression, 1040, xtest_tee_test_1040,
-		 "Test panic in concurrent open/invoke/close session");

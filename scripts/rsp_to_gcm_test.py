@@ -1,8 +1,4 @@
 #!/usr/bin/env python3
-# SPDX-License-Identifier: BSD-2-Clause
-#
-# Copyright (c) 2017, Linaro Limited
-#
 
 modes = {'encrypt': 0, 'decrypt': 1}
 

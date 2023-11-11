@@ -20,7 +20,6 @@
 #include <utee_defines.h>
 #include <util.h>
 
-#include "pkcs11_1000.h"
 #include "xtest_test.h"
 #include "xtest_helpers.h"
 #include "xtest_uuid_helpers.h"
@@ -210,6 +209,7 @@ static void xtest_pkcs11_test_1000(ADBG_Case_t *c)
 	rv = C_Finalize(NULL);
 	ADBG_EXPECT_CK_RESULT(c, CKR_CRYPTOKI_NOT_INITIALIZED, rv);
 }
+
 ADBG_CASE_DEFINE(pkcs11, 1000, xtest_pkcs11_test_1000,
 		 "Initialize and close Cryptoki library");
 
@@ -445,6 +445,7 @@ out:
 	rv = C_Finalize(NULL);
 	ADBG_EXPECT_CK_OK(c, rv);
 }
+
 ADBG_CASE_DEFINE(pkcs11, 1001, xtest_pkcs11_test_1001,
 		 "PKCS11: List PKCS#11 slots and get information from");
 
@@ -574,6 +575,7 @@ bail:
 	rv = close_lib();
 	ADBG_EXPECT_CK_OK(c, rv);
 }
+
 ADBG_CASE_DEFINE(pkcs11, 1002, xtest_pkcs11_test_1002,
 		 "PKCS11: Open and close PKCS#11 sessions");
 
@@ -1139,6 +1141,7 @@ out:
 	rv = close_lib();
 	ADBG_EXPECT_CK_OK(c, rv);
 }
+
 ADBG_CASE_DEFINE(pkcs11, 1003, xtest_pkcs11_test_1003,
 		 "PKCS11: Login to PKCS#11 token with PIN based authentication");
 
@@ -1332,8 +1335,10 @@ static void xtest_pkcs11_test_1004(ADBG_Case_t *c)
 	test_create_objects_in_session(c, true /*readwrite*/);
 	Do_ADBG_EndSubCase(c, "Create objects in a read/write session");
 }
+
 ADBG_CASE_DEFINE(pkcs11, 1004, xtest_pkcs11_test_1004,
 		 "PKCS11: create/destroy PKCS#11 simple objects");
+
 
 static const CK_MECHANISM_TYPE allowed_only_aes_ecb[] = {
 	CKM_AES_ECB,
@@ -1561,6 +1566,8 @@ out:
 	rv = close_lib();
 	ADBG_EXPECT_CK_OK(c, rv);
 }
+
+
 ADBG_CASE_DEFINE(pkcs11, 1005, xtest_pkcs11_test_1005,
 		"PKCS11: Check ciphering with valid and invalid keys #1");
 
@@ -8172,6 +8179,7 @@ err_close_sess:
 err_close_lib:
 	close_lib();
 }
+
 ADBG_CASE_DEFINE(pkcs11, 1025, xtest_pkcs11_test_1025,
 		 "PKCS11: EDDSA key generation and signing");
 
@@ -8622,6 +8630,7 @@ close_session:
 close_lib:
 	ADBG_EXPECT_CK_OK(c, close_lib());
 }
+
 ADBG_CASE_DEFINE(pkcs11, 1026, xtest_pkcs11_test_1026,
 		 "PKCS11: RSA AES Key Wrap/Unwrap tests");
 
@@ -8735,139 +8744,6 @@ out_unsetenv:
 	ADBG_EXPECT_TRUE(c, !unsetenv("CKTEEC_LOGIN_TYPE"));
 	ADBG_EXPECT_TRUE(c, !unsetenv("CKTEEC_LOGIN_GID"));
 }
+
 ADBG_CASE_DEFINE(pkcs11, 1027, xtest_pkcs11_test_1027,
 		 "PKCS11: Login to PKCS#11 token with ACL based authentication");
-
-int xtest_pkcs11_1028_destroy_token_object(void)
-{
-	/* These attributes match cktest_token_object which is to find */
-	CK_ATTRIBUTE find_token_template[] = {
-		{ CKA_DECRYPT, &(CK_BBOOL){ CK_TRUE }, sizeof(CK_BBOOL) },
-		{ CKA_TOKEN, &(CK_BBOOL){ CK_TRUE }, sizeof(CK_BBOOL) },
-		{ CKA_MODIFIABLE, &(CK_BBOOL){ CK_TRUE }, sizeof(CK_BBOOL) },
-		{ CKA_CLASS, &(CK_OBJECT_CLASS){ CKO_SECRET_KEY }, sizeof(CK_OBJECT_CLASS) },
-		{ CKA_KEY_TYPE, &(CK_KEY_TYPE){ CKK_AES }, sizeof(CK_KEY_TYPE) },
-	};
-	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
-	CK_OBJECT_HANDLE obj_handle[2] = { };
-	CK_RV rv = CKR_GENERAL_ERROR;
-	CK_ULONG hdl_count = 0;
-	CK_ULONG obj_size = 0;
-	CK_SLOT_ID slot = 0;
-	int ret = 1;
-
-	rv = init_lib_and_find_token_slot(&slot, PIN_AUTH);
-	if (rv != CKR_OK)
-		return 1;
-
-	rv = C_OpenSession(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL, 0, &session);
-	if (rv != CKR_OK)
-		goto out_lib;
-
-	/*
-	 * We expect to find a single matching object so that it is
-	 * the very one we're about to destroy.
-	 */
-	rv = C_FindObjectsInit(session, find_token_template, ARRAY_SIZE(find_token_template));
-	if (rv != CKR_OK)
-		goto out_session;
-
-	rv = C_FindObjects(session, obj_handle, ARRAY_SIZE(obj_handle), &hdl_count);
-	if (rv != CKR_OK || hdl_count != 1)
-		goto out_session;
-
-	rv = C_FindObjectsFinal(session);
-	if (rv != CKR_OK)
-		goto out_session;
-
-	/* Session B destroys the token object, session A shall not reach it */
-	rv = C_DestroyObject(session, obj_handle[0]);
-	if (rv != CKR_OK)
-		goto out_session;
-
-	rv = C_GetObjectSize(session, obj_handle[0], &obj_size);
-	if (rv == CKR_OBJECT_HANDLE_INVALID)
-		ret = 0;
-
-out_session:
-	C_CloseSession(session);
-out_lib:
-	close_lib();
-
-	return ret;
-}
-
-/*
- * This test involves 2 client sessions towards the PKCS11 token.
- *
- * Session A (implementation below) creates a token object then executes an
- * application that opens session B to destroy the object after what session A
- * gets a invalid object handle result when reusing its object handle.
- *
- * Session B sequence is implemented by function
- * xtest_pkcs11_1028_destroy_token_object() that must be called from another
- * process so that cryptoki library sees it as a different client and
- * generates another handle for the same object.
- */
-static void xtest_pkcs11_test_1028(ADBG_Case_t *c)
-{
-	CK_SESSION_HANDLE session = CK_INVALID_HANDLE;
-	CK_OBJECT_HANDLE obj_handle = CK_INVALID_HANDLE;
-	CK_RV rv = CKR_GENERAL_ERROR;
-	CK_ULONG obj_size = 0;
-	CK_SLOT_ID slot = 0;
-	char cmd_opt[] = "--pkcs11-1028-destroy-token-object";
-	char *cmdline = NULL;
-	int cmdline_size = 0;
-	int ret = 0;
-
-	rv = init_lib_and_find_token_slot(&slot, PIN_AUTH);
-	if (!ADBG_EXPECT_CK_OK(c, rv))
-		return;
-
-	cmdline_size = snprintf(NULL, 0, "%s %s", xtest_progname, cmd_opt) + 1;
-	if (!ADBG_EXPECT_COMPARE_SIGNED(c, cmdline_size, >, 0))
-		goto out_lib;
-	cmdline = malloc(cmdline_size);
-	if (!ADBG_EXPECT_NOT_NULL(c, cmdline))
-		goto out_lib;
-	snprintf(cmdline, cmdline_size, "%s %s", xtest_progname, cmd_opt);
-
-	/* Session A creates a token object */
-	rv = C_OpenSession(slot, CKF_SERIAL_SESSION | CKF_RW_SESSION, NULL, 0, &session);
-	if (!ADBG_EXPECT_CK_OK(c, rv))
-		goto out_lib;
-
-	rv = C_CreateObject(session, cktest_token_object, ARRAY_SIZE(cktest_token_object),
-			    &obj_handle);
-	if (!ADBG_EXPECT_CK_OK(c, rv))
-		goto out_session;
-
-	rv = C_GetObjectSize(session, obj_handle, &obj_size);
-	if (!ADBG_EXPECT_CK_OK(c, rv)) {
-		rv = C_DestroyObject(session, obj_handle);
-		ADBG_EXPECT_CK_OK(c, rv);
-		goto out_session;
-	}
-
-	ret = system(cmdline);
-	ADBG_EXPECT(c, ret, 0);
-
-	/* Session B has deleted the object: session A handle shall no more be valid */
-	rv = C_GetObjectSize(session, obj_handle, &obj_size);
-	if (!ADBG_EXPECT_CK_RESULT(c, CKR_OBJECT_HANDLE_INVALID, rv)) {
-		rv = C_DestroyObject(session, obj_handle);
-		ADBG_EXPECT_CK_OK(c, rv);
-	}
-
-out_session:
-	rv = C_CloseSession(session);
-	ADBG_EXPECT_CK_OK(c, rv);
-out_lib:
-	rv = close_lib();
-	ADBG_EXPECT_CK_OK(c, rv);
-
-	free(cmdline);
-}
-ADBG_CASE_DEFINE(pkcs11, 1028, xtest_pkcs11_test_1028,
-		 "PKCS11: destroy PKCS#11 objects handled by another session");

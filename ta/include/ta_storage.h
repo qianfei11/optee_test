@@ -4,8 +4,6 @@
  * All rights reserved.
  */
 
-#include <stdint.h>
-
 #ifndef __TA_STORAGE_H
 #define __TA_STORAGE_H
 
@@ -50,6 +48,5 @@ struct ta_storage_obj_info {
 #define TA_STORAGE_CMD_CREATE_ID_IN_SHM		23
 #define TA_STORAGE_CMD_CREATEOVER_ID_IN_SHM	24
 #define TA_STORAGE_CMD_RENAME_ID_IN_SHM		25
-#define TA_STORAGE_CMD_CLEAR_STORAGE		26
 
 #endif /*__TA_STORAGE_H*/

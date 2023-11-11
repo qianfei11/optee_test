@@ -24,11 +24,10 @@
 #include "xtest_helpers.h"
 
 /* include here shandalone tests */
-#include "clear_storage.h"
 #include "crypto_common.h"
 #include "install_ta.h"
-#include "pkcs11_1000.h"
 #include "stats.h"
+
 
 ADBG_SUITE_DEFINE(benchmark);
 #ifdef WITH_GP_TESTS
@@ -42,7 +41,6 @@ ADBG_SUITE_DEFINE(ffa_spmc);
 #endif
 ADBG_SUITE_DEFINE(regression);
 
-char *xtest_progname;
 char *xtest_tee_name = NULL;
 unsigned int level = 0;
 static const char glevel[] = "0";
@@ -110,12 +108,7 @@ void usage(char *program)
 #ifdef CFG_SECURE_DATA_PATH
 	printf("\t--sdp-basic [opts] Basic Secure Data Path test setup ('-h' for usage)\n");
 #endif
-#ifdef CFG_PKCS11_TA
-	printf("\t--pkcs11-1028-destroy-token-object  Used internally by pkcs11_1028\n");
-#endif
 	printf("\t--stats [opts]     Various statistics ('-h' for usage)\n");
-	printf("\t--clear-storage    Delete any persistent objects that may have been\n");
-	printf("\t                   left over by a previous run of this application\n");
 	printf("\n");
 	printf("Examples:\n");
 	printf("\txtest -t regression 4001 4003\n");
@@ -160,9 +153,6 @@ int main(int argc, char *argv[])
 
 	init_ossl();
 
-	/* Reference xtest command name for global use */
-	xtest_progname = argv[0];
-
 	if (argc > 1 && !strcmp(argv[1], "--sha-perf"))
 		return hash_perf_runner_cmd_parser(argc-1, &argv[1]);
 	else if (argc > 1 && !strcmp(argv[1], "--hash-perf"))
@@ -177,14 +167,8 @@ int main(int argc, char *argv[])
 	else if (argc > 1 && !strcmp(argv[1], "--sdp-basic"))
 		return sdp_basic_runner_cmd_parser(argc-1, &argv[1]);
 #endif
-#ifdef CFG_PKCS11_TA
-	else if (argc == 2 && !strcmp(argv[1], "--pkcs11-1028-destroy-token-object"))
-		return xtest_pkcs11_1028_destroy_token_object();
-#endif
 	else if (argc > 1 && !strcmp(argv[1], "--stats"))
 		return stats_runner_cmd_parser(argc - 1, &argv[1]);
-	else if (argc == 2 && !strcmp(argv[1], "--clear-storage"))
-		return clear_storage();
 
 	while ((opt = getopt(argc, argv, "d:l:t:h")) != -1) {
 		switch (opt) {

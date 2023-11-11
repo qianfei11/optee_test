@@ -9,8 +9,6 @@
 #include <openssl/evp.h>
 #endif
 #include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <tee_api_types.h>
 #include <tee_client_api.h>
