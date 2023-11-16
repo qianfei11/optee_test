@@ -69,7 +69,7 @@ static TEEC_Result run_test_with_args(enum storage_benchmark_cmd cmd,
 
 struct test_record {
 	size_t data_size;
-	float spent_time;
+	float spent_time_in_s;
 	float speed_in_mb;
 };
 
@@ -77,14 +77,14 @@ static TEEC_Result run_chunk_access_test(enum storage_benchmark_cmd cmd,
 		uint32_t data_size, uint32_t chunk_size, struct test_record *rec)
 {
 	TEE_Result res = TEEC_ERROR_GENERIC;
-	uint32_t spent_time = 0;
+	uint32_t spent_time_in_ns = 0;
 
 	res = run_test_with_args(cmd, data_size, chunk_size, DO_VERIFY, 0,
-				&spent_time, NULL);
+				&spent_time_in_ns, NULL);
 
 	rec->data_size = data_size;
-	rec->spent_time = (float)spent_time / 1000.0;
-	rec->speed_in_mb = ((float)data_size / 1024.0 / 1024.0) / rec->spent_time;
+	rec->spent_time_in_s = (float)spent_time_in_ns / 1000.0 / 1000.0;
+	rec->speed_in_mb = ((float)data_size / 1024.0 / 1024.0) / rec->spent_time_in_s;
 
 	return res;
 }
@@ -94,12 +94,12 @@ static void show_test_result(struct test_record records[], size_t size)
 	size_t i = 0;
 
 	printf("-----------------+---------------+----------------\n");
-	printf(" Data Size (B) \t | Time (s)\t | Speed (MB/s)\t \n");
+	printf(" Data Size (B) \t | Time (s)\t | Speed (MiB/s)\t \n");
 	printf("-----------------+---------------+----------------\n");
 
 	for (i = 0; i < size; i++) {
 		printf(" %8zd \t | %8.3f \t | %8.6f\n",
-			records[i].data_size, records[i].spent_time,
+			records[i].data_size, records[i].spent_time_in_s,
 			records[i].speed_in_mb);
 	}
 

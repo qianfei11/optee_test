@@ -56,9 +56,9 @@ static inline uint32_t tee_time_to_ms(TEE_Time t)
 	return t.seconds * 1000 + t.millis;
 }
 
-static inline uint32_t get_delta_time_in_ms(TEE_Time start, TEE_Time stop)
+static inline uint32_t get_delta_time_in_ns(TEE_Time start, TEE_Time stop)
 {
-	return tee_time_to_ms(stop) - tee_time_to_ms(start);
+	return 1000 * (tee_time_to_ms(stop) - tee_time_to_ms(start));
 }
 
 static TEE_Result prepare_test_file(size_t data_size, uint8_t *chunk_buf,
@@ -103,7 +103,7 @@ exit:
 
 static TEE_Result test_write(TEE_ObjectHandle object, size_t data_size,
 		uint8_t *chunk_buf, size_t chunk_size,
-		uint32_t *spent_time_in_ms)
+		uint32_t *spent_time_in_ns)
 {
 	TEE_Time start_time = { };
 	TEE_Time stop_time = { };
@@ -130,12 +130,12 @@ static TEE_Result test_write(TEE_ObjectHandle object, size_t data_size,
 
 	TEE_GetSystemTime(&stop_time);
 
-	*spent_time_in_ms = get_delta_time_in_ms(start_time, stop_time);
+	*spent_time_in_ns = get_delta_time_in_ns(start_time, stop_time);
 
-	IMSG("start: %u.%u(s), stop: %u.%u(s), delta: %u(ms)",
+	IMSG("start: %u.%u(s), stop: %u.%u(s), delta: %u(ns)",
 			start_time.seconds, start_time.millis,
 			stop_time.seconds, stop_time.millis,
-			*spent_time_in_ms);
+			*spent_time_in_ns);
 
 exit:
 	return res;
@@ -143,7 +143,7 @@ exit:
 
 static TEE_Result test_read(TEE_ObjectHandle object, size_t data_size,
 		uint8_t *chunk_buf, size_t chunk_size,
-		uint32_t *spent_time_in_ms)
+		uint32_t *spent_time_in_ns)
 {
 	TEE_Time start_time = { };
 	TEE_Time stop_time = { };
@@ -173,12 +173,12 @@ static TEE_Result test_read(TEE_ObjectHandle object, size_t data_size,
 
 	TEE_GetSystemTime(&stop_time);
 
-	*spent_time_in_ms = get_delta_time_in_ms(start_time, stop_time);
+	*spent_time_in_ns = get_delta_time_in_ns(start_time, stop_time);
 
 	IMSG("start: %u.%u(s), stop: %u.%u(s), delta: %u(ms)",
 			start_time.seconds, start_time.millis,
 			stop_time.seconds, stop_time.millis,
-			*spent_time_in_ms);
+			*spent_time_in_ns);
 
 exit:
 	return res;
@@ -186,7 +186,7 @@ exit:
 
 static TEE_Result test_rewrite(TEE_ObjectHandle object, size_t data_size,
 		uint8_t *chunk_buf, size_t chunk_size,
-		uint32_t *spent_time_in_ms)
+		uint32_t *spent_time_in_ns)
 {
 	TEE_Time start_time = { };
 	TEE_Time stop_time = { };
@@ -240,12 +240,12 @@ static TEE_Result test_rewrite(TEE_ObjectHandle object, size_t data_size,
 
 	TEE_GetSystemTime(&stop_time);
 
-	*spent_time_in_ms = get_delta_time_in_ms(start_time, stop_time);
+	*spent_time_in_ns = get_delta_time_in_ns(start_time, stop_time);
 
 	IMSG("start: %u.%u(s), stop: %u.%u(s), delta: %u(ms)",
 			start_time.seconds, start_time.millis,
 			stop_time.seconds, stop_time.millis,
-			*spent_time_in_ms);
+			*spent_time_in_ns);
 
 exit:
 	return res;
@@ -303,7 +303,7 @@ static TEE_Result ta_stroage_benchmark_chunk_access_test(uint32_t nCommandID,
 	size_t chunk_size = 0;
 	TEE_ObjectHandle object = TEE_HANDLE_NULL;
 	uint8_t *chunk_buf = NULL;
-	uint32_t *spent_time_in_ms = &params[2].value.a;
+	uint32_t *spent_time_in_ns = &params[2].value.a;
 	bool do_verify = false;
 
 	ASSERT_PARAM_TYPE(param_types, TEE_PARAM_TYPES(
@@ -355,17 +355,17 @@ static TEE_Result ta_stroage_benchmark_chunk_access_test(uint32_t nCommandID,
 	switch (nCommandID) {
 	case TA_STORAGE_BENCHMARK_CMD_TEST_READ:
 		res = test_read(object, data_size, chunk_buf,
-				chunk_size, spent_time_in_ms);
+				chunk_size, spent_time_in_ns);
 		break;
 
 	case TA_STORAGE_BENCHMARK_CMD_TEST_WRITE:
 		res = test_write(object, data_size, chunk_buf,
-				chunk_size, spent_time_in_ms);
+				chunk_size, spent_time_in_ns);
 		break;
 
 	case TA_STORAGE_BENCHMARK_CMD_TEST_REWRITE:
 		res = test_rewrite(object, data_size, chunk_buf,
-				chunk_size, spent_time_in_ms);
+				chunk_size, spent_time_in_ns);
 		break;
 
 	default:
