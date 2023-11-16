@@ -13,6 +13,8 @@
 #include <ta_storage_benchmark.h>
 #include <util.h>
 
+#include <sys/time.h>
+
 #define DO_VERIFY 0
 #define DEFAULT_DATA_SIZE (2 * 1024 * 1024) /* 2MB */
 #define DEFAULT_CHUNK_SIZE (1 * 1024) /* 1KB */
@@ -77,13 +79,20 @@ static TEEC_Result run_chunk_access_test(enum storage_benchmark_cmd cmd,
 		uint32_t data_size, uint32_t chunk_size, struct test_record *rec)
 {
 	TEE_Result res = TEEC_ERROR_GENERIC;
-	uint32_t spent_time_in_ns = 0;
+	uint32_t spent_time_in_us = 0;
+	struct timeval start_time, end_time;
+
+	gettimeofday(&start_time, NULL);
 
 	res = run_test_with_args(cmd, data_size, chunk_size, DO_VERIFY, 0,
-				&spent_time_in_ns, NULL);
+				&spent_time_in_us, NULL);
+
+	gettimeofday(&end_time, NULL);
+	spent_time_in_us = (end_time.tv_sec - start_time.tv_sec) * 1000 * 1000 +
+		(end_time.tv_usec - start_time.tv_usec);
 
 	rec->data_size = data_size;
-	rec->spent_time_in_s = (float)spent_time_in_ns / 1000.0 / 1000.0;
+	rec->spent_time_in_s = (float)spent_time_in_us / 1000.0 / 1000.0;
 	rec->speed_in_mb = ((float)data_size / 1024.0 / 1024.0) / rec->spent_time_in_s;
 
 	return res;
